@@ -31,7 +31,7 @@
     [contenteditable=true]:focus { outline: 2px solid #3b82f6; outline-offset: -2px; border-radius: 3px; }
     .sort-h { cursor: pointer; user-select: none; }
     .sort-h:hover { color: #1f2937; }
-    .drag-handle { cursor: grab; touch-action: none; color: #9ca3af; user-select: none; }
+    .drag-handle { cursor: grab; touch-action: none; color: #9ca3af; user-select: none; display: inline-block; padding: 6px 10px; }
     .drag-handle:active { cursor: grabbing; }
     .dragging { opacity: 0.5; background: #eff6ff; }
     .drop-above { box-shadow: 0 -2px 0 0 #3b82f6 inset; }
@@ -445,7 +445,6 @@
         const handle = tr.querySelector('.drag-handle');
         handle.addEventListener('pointerdown', (e) => {
           e.preventDefault();
-          handle.setPointerCapture(e.pointerId);
           beginDrag(tr, e);
         });
       }
@@ -457,6 +456,7 @@
 
         const onMove = (ev) => {
           if (!dragCtx) return;
+          ev.preventDefault();
           const y = ev.clientY;
           const rows = Array.from(tbody.children).filter(r => r !== tr && !r.classList.contains('row-deleted'));
           let dropEl = null, dropPos = null;
@@ -477,9 +477,9 @@
         };
 
         const onUp = () => {
-          window.removeEventListener('pointermove', onMove);
-          window.removeEventListener('pointerup', onUp);
-          window.removeEventListener('pointercancel', onUp);
+          document.removeEventListener('pointermove', onMove);
+          document.removeEventListener('pointerup', onUp);
+          document.removeEventListener('pointercancel', onUp);
           if (!dragCtx) return;
           const target = dragCtx.lastTarget;
           const moved = !!target;
@@ -503,9 +503,9 @@
           dragCtx = null;
         };
 
-        window.addEventListener('pointermove', onMove);
-        window.addEventListener('pointerup', onUp);
-        window.addEventListener('pointercancel', onUp);
+        document.addEventListener('pointermove', onMove, { passive: false });
+        document.addEventListener('pointerup', onUp);
+        document.addEventListener('pointercancel', onUp);
       }
 
       function onDeleteClick(tr, row) {

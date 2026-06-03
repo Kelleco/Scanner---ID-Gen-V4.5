@@ -41,9 +41,9 @@ Load CSV database → Configure ID format → Start camera → Scan item
 
 - Real-time camera scanning via HTML5 QrCode library
 - **Dual scan-destination modes** (toggle button):
-  - **QR Mode (→ Install No):** Scans QR codes or install numbers; auto-looks up matching barcode in loaded CSV
+  - **QR Mode (→ Install No):** Scans QR codes or install numbers; auto-looks up matching barcode in loaded CSV. Values **not found in the CSV are rejected** — no row is added and no sequential ID is consumed (orange toast)
   - **Mapped Barcode Mode (→ Mapped Barcode):** Scans barcodes directly; requires 2 consecutive matching reads to confirm (error-correction)
-- Manual text input fallback (Enter to submit)
+- Manual text input fallback (Enter to submit), with an optional **Tag** override field positioned directly above it (see §2)
 - Zoom slider (1×–4×); uses hardware zoom on Android Chrome
 - Haptic feedback (Vibration API) on successful scan
 - 1.5–3s cooldown between scan events to prevent duplicate triggers
@@ -59,6 +59,7 @@ Load CSV database → Configure ID format → Start camera → Scan item
 - Live preview of next ID to be generated (e.g., `RS001`)
 - Auto-increments on each accepted scan
 - Skips any ID already present in the log (no duplicates)
+- **Manual Tag override:** an optional Tag input (shown above the manual value input). When a value is entered, it is used as the Tag for the next entry instead of an auto-generated ID, and **no sequential number is consumed** (the next-ID preview is unaffected, so the following normal entry still gets the expected sequential ID). Applies to manual Add **and** live camera scans in both QR and Mapped Barcode modes. The field is cleared after each entry; a typed Tag that duplicates an existing one is rejected (orange toast)
 
 ### 3. CSV Database Integration
 
@@ -81,7 +82,7 @@ Load CSV database → Configure ID format → Start camera → Scan item
 - **Drag-and-drop reordering** (mouse on desktop, touch on mobile)
 - **Column sorting:** click header to sort ascending/descending; numeric-aware comparison
 - **Soft delete:** inline "Sure?" confirmation, auto-cancels after 3 seconds
-- Items with no CSV match logged with `NOT FOUND` (styled red italic)
+- In **Mapped Barcode mode**, items with no CSV match are logged with `NOT FOUND` (styled red italic); in **QR mode** a value with no CSV match is rejected instead (no row added — see §1)
 - Empty state: "No items scanned yet." sentinel row
 - All changes auto-saved to `localStorage`
 
@@ -131,8 +132,9 @@ Load CSV database → Configure ID format → Start camera → Scan item
 | Field | Rule |
 |---|---|
 | Tag ID (edit) | Must not already exist in log |
+| Tag override (manual) | Must be unique; rejected if already in `tagSet` |
 | Mapped Barcode (edit) | Must not already exist in log (except `NOT FOUND`) |
-| QR scan | Rejected if already in `scannedSet` |
+| QR scan | Rejected if already in `scannedSet`, or if the value is not found in the loaded CSV (no row, no ID) |
 | Barcode scan | Rejected if already in `mappedBarcodeSet` |
 | Prefix | Max 4 characters |
 | Min Digits | 1–10 |
@@ -144,14 +146,13 @@ Load CSV database → Configure ID format → Start camera → Scan item
 
 | Color | Trigger |
 |---|---|
-| Blue | Successful scan with CSV match |
-| Yellow | Scan with no CSV match ("NOT FOUND") |
-| Purple | Barcode mode scan accepted |
-| Orange | Duplicate scan attempt |
+| Blue | Successful QR-mode scan with CSV match |
+| Purple | Mapped Barcode mode scan accepted |
+| Orange | Warn-and-reject: duplicate scan, duplicate Tag, or QR value not found in CSV |
 | Red | Error (camera permission, CSV parse failure) |
 | Green | Successful export |
 
-Auto-dismiss after 3 seconds.
+Most toasts auto-dismiss after 3 seconds; warn-and-reject (orange) toasts persist for 9 seconds for visibility. (Note: the vendored Tailwind build lacks `bg-orange-500`, so the orange background is supplied by a rule in the inline stylesheet.)
 
 ---
 

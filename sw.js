@@ -1,7 +1,7 @@
 'use strict';
 
 // Bump this version to force a refresh of the cached app shell.
-const CACHE = 'scanner-id-v1';
+const CACHE = 'scanner-id-v2';
 
 // Same-origin app shell. addAll() rejects if any of these fail to fetch,
 // so a partial/broken install never silently "succeeds".

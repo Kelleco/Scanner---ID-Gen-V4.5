@@ -1,4 +1,4 @@
-# Product Requirements Document: Scanner & ID Gen V4
+# Product Requirements Document: Scanner & ID Gen V4.5
 
 ## Overview
 
@@ -42,22 +42,25 @@ Load CSV database → Configure ID format → Start camera → Scan item
 - Real-time camera scanning via HTML5 QrCode library
 - **Dual scan-destination modes** (toggle button):
   - **QR Mode (→ Install No):** Scans QR codes or install numbers; auto-looks up matching barcode in loaded CSV. Values **not found in the CSV are rejected** — no row is added and no sequential ID is consumed (orange toast)
-  - **Mapped Barcode Mode (→ Mapped Barcode):** Scans barcodes directly; requires 2 consecutive matching reads to confirm (error-correction)
+  - **Mapped Barcode Mode (→ Mapped Barcode):** Scans barcodes directly; uses an N-consecutive-read confirmation buffer (currently 2 identical reads, format-filtered to CODE 39) before accepting — error-correction against single-frame misreads. A non-matching read resets the buffer
 - Manual text input fallback (Enter to submit), with an optional **Tag** override field positioned directly above it (see §2)
 - Zoom slider (1×–4×); uses hardware zoom on Android Chrome
 - Haptic feedback (Vibration API) on successful scan
 - 1.5–3s cooldown between scan events to prevent duplicate triggers
 - Camera auto-stops when tab is hidden (Page Visibility API)
-- Pending indicator ("⏳ 1/2 reads…") shown during error-correction accumulation
+- Dot-progress indicator (filled/empty indigo circles, one per required read) shown during error-correction accumulation; resets if a non-matching read interrupts the buffer or on scan-mode change
 
 ### 2. Sequential ID Generation
 
 - Configurable fields:
-  - **Prefix** — 0–4 characters, auto-uppercased
-  - **Start Number** — integer ≥ 0 (default: 1)
-  - **Min Digits** — zero-padding width 1–10 (default: 1)
+  - **Prefix** — 0–10 characters, auto-uppercased
+  - **Start #** — either an integer ≥ 0 (numeric mode, default: 1) **or** a lowercase letter sequence (alpha mode)
+  - **Min Digits** — zero-padding width 1–10 (default: 1); auto-set to 0 and disabled while in alpha mode
+  - **DEC** — checkbox justified right of the ID Format heading; when checked, the sequence counts *down* toward its floor instead of up
 - Live preview of next ID to be generated (e.g., `RS001`)
-- Auto-increments on each accepted scan
+- **Numeric vs. alpha mode:** if Start # is a lowercase letter, IDs increment alphabetically Excel-style (`a → b → … → z → aa → ab …`); any letters typed into Start # are forced lowercase. Otherwise IDs increment numerically with zero-padding
+- **Descending (DEC):** when enabled, the sequence decrements toward its floor — `1` in numeric mode, `'a'` in alpha mode — and stays at the floor once reached
+- Auto-increments (or decrements) on each accepted scan
 - Skips any ID already present in the log (no duplicates)
 - **Manual Tag override:** an optional Tag input (shown above the manual value input). When a value is entered, it is used as the Tag for the next entry instead of an auto-generated ID, and **no sequential number is consumed** (the next-ID preview is unaffected, so the following normal entry still gets the expected sequential ID). Applies to manual Add **and** live camera scans in both QR and Mapped Barcode modes. The field is cleared after each entry; a typed Tag that duplicates an existing one is rejected (orange toast)
 
@@ -136,8 +139,9 @@ Load CSV database → Configure ID format → Start camera → Scan item
 | Mapped Barcode (edit) | Must not already exist in log (except `NOT FOUND`) |
 | QR scan | Rejected if already in `scannedSet`, or if the value is not found in the loaded CSV (no row, no ID) |
 | Barcode scan | Rejected if already in `mappedBarcodeSet` |
-| Prefix | Max 4 characters |
-| Min Digits | 1–10 |
+| Prefix | Max 10 characters |
+| Start # | Integer ≥ 0 (numeric mode) or lowercase letters a–z (alpha mode) |
+| Min Digits | 1–10 (forced to 0 and disabled in alpha mode) |
 | CSV columns | Must contain `install no.` and `barcode` headers |
 
 ---

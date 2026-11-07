@@ -358,6 +358,41 @@
         setTimeout(() => { el.remove(); }, total);
       }
 
+      // Audio feedback: high single beep = success, low double-beep = failure.
+      // QR mode: CSV match / not found. Barcode mode: 2 identical reads accepted / reads mismatched.
+      let audioCtx = null;
+      function unlockAudio() {
+        try {
+          if (!audioCtx) {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (!AC) return null;
+            audioCtx = new AC();
+          }
+          if (audioCtx.state === 'suspended') audioCtx.resume();
+        } catch (_) { return null; }
+        return audioCtx;
+      }
+      function playTone(freq, startOffset, dur) {
+        const ctx = unlockAudio();
+        if (!ctx) return;
+        try {
+          const t = ctx.currentTime + startOffset;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0, t);
+          gain.gain.linearRampToValueAtTime(0.3, t + 0.01);
+          gain.gain.setValueAtTime(0.3, t + dur - 0.02);
+          gain.gain.linearRampToValueAtTime(0, t + dur);
+          osc.connect(gain).connect(ctx.destination);
+          osc.start(t);
+          osc.stop(t + dur);
+        } catch (_) {}
+      }
+      function beepSuccess() { playTone(1800, 0, 0.12); }
+      function beepFail() { playTone(400, 0, 0.12); playTone(400, 0.2, 0.12); }
+
       const $ = id => document.getElementById(id);
 
       function refreshPreview() { $('nextIdPreview').textContent = nextTagId(); }
@@ -421,6 +456,7 @@
 
         if (barcodeReadBuffer.length > 0 && barcodeReadBuffer[0] !== decodedText) {
           barcodeReadBuffer = [];
+          beepFail();
         }
         barcodeReadBuffer.push(decodedText);
         onProgress(barcodeReadBuffer.length, REQUIRED_READS);
@@ -693,7 +729,7 @@
           barcode = csvIndex.byInstall.get(value)
                  || csvIndex.byInstall.get(normalizeInstall(value))
                  || 'NOT FOUND';
-          if (barcode === 'NOT FOUND') { toast('Not in CSV: ' + value, 'orange', 9000); return; }
+          if (barcode === 'NOT FOUND') { beepFail(); toast('Not in CSV: ' + value, 'orange', 9000); return; }
         } else {
           barcode = value;
           qr = csvIndex.byBarcode.get(value) || 'NOT FOUND';
@@ -711,6 +747,7 @@
           if (qr === 'NOT FOUND') toast('+ ' + tag + ' (barcode, not in CSV)', 'purple');
           else toast('+ ' + tag + ' ← ' + qr, 'purple');
         }
+        beepSuccess();
         if (navigator.vibrate) { try { navigator.vibrate(50); } catch (_) {} }
       }
 
@@ -894,6 +931,7 @@
         });
 
         $('btnStart').addEventListener('click', () => {
+          unlockAudio();
           if (scannerRunning) stopScanner(); else startScanner();
         });
         $('zoom').addEventListener('input', (e) => applyZoom(parseFloat(e.target.value)));

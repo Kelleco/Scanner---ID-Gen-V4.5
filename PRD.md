@@ -46,6 +46,7 @@ Load CSV database → Configure ID format → Start camera → Scan item
 - Manual text input fallback (Enter to submit), with an optional **Tag** override field positioned directly above it (see §2)
 - Zoom slider (1×–4×); uses hardware zoom on Android Chrome
 - Haptic feedback (Vibration API) on successful scan
+- Audio feedback (Web Audio API): single high-pitched beep on success, low-pitched double-beep on failure. QR mode: Install No found / not found in the loaded CSV. Mapped Barcode mode: 2 identical reads accepted / second read did not match the first (independent of CSV match). Duplicates are silent.
 - 1.5–3s cooldown between scan events to prevent duplicate triggers
 - Camera auto-stops when tab is hidden (Page Visibility API)
 - Dot-progress indicator (filled/empty indigo circles, one per required read) shown during error-correction accumulation; resets if a non-matching read interrupts the buffer or on scan-mode change
@@ -200,7 +201,7 @@ Most toasts auto-dismiss after 3 seconds; warn-and-reject (orange) toasts persis
 The three offline-critical libraries are vendored locally so the app works
 offline and the service-worker cache stays same-origin (see §8).
 
-**Built-in browser APIs used:** Camera, Fetch, File System Access, localStorage, Vibration, Page Visibility, Service Worker, Cache Storage
+**Built-in browser APIs used:** Camera, Fetch, File System Access, localStorage, Vibration, Web Audio, Page Visibility, Service Worker, Cache Storage
 
 ---
 
